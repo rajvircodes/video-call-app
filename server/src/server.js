@@ -1,18 +1,19 @@
-import dotenv from "dotenv";
-dotenv.config();
-import express from "express";
-import connectDB from "./config/db.js";
+import express from 'express'
+import dotenv from 'dotenv'
+import cors from 'cors'
+import { connectDB } from './src/config/db.js'
 
-const app = express();
+dotenv.config()
 
-app.get("/", (req, res) => {
-  res.send("Hello world from backend");
-});
+const app = express()
 
-connectDB();
+app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }))
+app.use(express.json())
 
-const PORT = process.env.PORT;
+app.get('/health', (req, res) => res.json({ status: 'ok' }))
 
-app.listen(3000, () => {
-  console.log(`Server is running on ${PORT}`);
-});
+const PORT = process.env.PORT || 5000
+
+connectDB().then(() => {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+})
