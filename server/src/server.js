@@ -5,21 +5,12 @@ const connectDB = require('./config/db.js')
 const cors = require('cors')
 require('dotenv').config()
 const authRoutes = require('./routes/auth.routes.js')
+const socketHandler = require('./socket/socketHandler.js')
+
+connectDB()
 
 const app = express()
-
-// built in middlewares
-app.use(express.json())
-app.use(express.json())
-
 const httpServer = http.createServer(app)
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-  })
-)
 
 const io = new Server(httpServer, {
   cors: {
@@ -28,17 +19,22 @@ const io = new Server(httpServer, {
   },
 })
 
+socketHandler(io)
+
+// built in middlewares
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  })
+)
+app.use(express.json())
+
 // health checker routes
 app.get('/', (req, res) => {
-  res.json({ status: 'Server is running' })
-})
-
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`)
-})
-
-io.on('disconnect', (socket) => {
-  console.log(`User disconnected: ${socket.id}`)
+  res.json({
+    status: 'Server is running',
+    connectedClients: io.engine.clientsCount,
+  })
 })
 
 app.use('/api/auth', authRoutes)
@@ -46,6 +42,4 @@ app.use('/api/auth', authRoutes)
 // database connection
 const PORT = process.env.PORT || 5000
 
-connectDB().then(() => {
-  httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`))
-})
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`))
